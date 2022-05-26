@@ -9,7 +9,7 @@ typedef struct{
     int num_words;
     int num_vowels;
     int num_cons;
-    unsigned int ch_values[NUM_BYTES];
+    unsigned int ch_values[NUM_BYTES + 10];
 
 } MessageStruct;
 

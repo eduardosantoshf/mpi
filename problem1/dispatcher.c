@@ -1,4 +1,5 @@
 #include "MessageStruct.h"
+#include "worker.h"
 #include <errno.h>
 #include <pthread.h>
 #include <string.h>
@@ -40,9 +41,9 @@ void allocateMemory(char *filenames[], unsigned int numfiles){
     array_num_vowels = (int *)malloc(num_files * sizeof(int));
     array_num_cons = (int *)malloc(num_files * sizeof(int));
 
-    for(int i = 0; i < num_files; i++){
-        array_num_words[i] = 1;
-    }
+    //for(int i = 0; i < num_files; i++){
+    //    array_num_words[i] = 1;
+    //}
 
 }
 
@@ -161,14 +162,35 @@ int getVal(MessageStruct *MessageStruct){
     }
 
     MessageStruct->file_index = index_file;
+    //printf("index: %d \n", index_file);
 
 
     if(available){
-        while (bytes != NUM_BYTES && !feof(fp)) {
+        //printf("entrei no file \n");
+        while (bytes != NUM_BYTES) {
             ch_value = get_int(fp);
+            //printf("%d \n", ch_value);
+            if(ch_value == -1){
+                break;
+            }
+            //if(ch_value == 1){
+            //    printf("entrou aqui???");
+            //}
             MessageStruct->ch_values[bytes] = ch_value;
             bytes += 1;
         }
+
+        while (!is_split(ch_value))
+        {   
+            ch_value = get_int(fp);
+            //printf("%d \n", ch_value);
+            if(ch_value == -1){
+                break;
+            }
+            MessageStruct->ch_values[bytes] = ch_value;
+            bytes += 1;
+        }
+        
         
     }
 
@@ -193,7 +215,9 @@ int getVal(MessageStruct *MessageStruct){
 
 void save_file_results(MessageStruct *messageStruct) {
     //printf("%d", messageStruct->file_index);
-    printf("%d \n", messageStruct->num_words);
+    //printf("words: %d \n", messageStruct->num_words);
+    //printf("start w/ vowel: %d \n", messageStruct->num_words);
+    //printf("end w/ cons: %d \n", messageStruct->num_words);
     //printf("\n");
     array_num_words[messageStruct->file_index] += messageStruct->num_words;
     array_num_vowels[messageStruct->file_index] += messageStruct->num_vowels;
