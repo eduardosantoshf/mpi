@@ -41,9 +41,11 @@ void allocateMemory(char *filenames[], unsigned int numfiles){
     array_num_vowels = (int *)malloc(num_files * sizeof(int));
     array_num_cons = (int *)malloc(num_files * sizeof(int));
 
-    //for(int i = 0; i < num_files; i++){
-    //    array_num_words[i] = 1;
-    //}
+    for(int i = 0; i < num_files; i++){
+        array_num_words[i] = 0;
+        array_num_vowels[i] = 0;
+        array_num_cons[i] = 0;
+    }
 
 }
 
@@ -61,10 +63,12 @@ int check_for_file() {
   int flag_file = 1;
   index_file++;
 
-
+  //printf("index: %d \n", index_file);
+  //printf("num: %d \n", num_files);
   if (index_file < num_files) {                                                          /* Check if there are more files to be opened */
       open_file = 1;
       close_file = 0;
+      //printf("ficheiro: %s \n", file_names[index_file]);
       fp = fopen(file_names[index_file], "r");
 
       if(fp == NULL){
@@ -198,7 +202,7 @@ int getVal(MessageStruct *MessageStruct){
 
     if(bytes == 0){
         check_close_file();
-        return 0;
+        //return 0;
     }
 
     return available;
@@ -214,7 +218,7 @@ int getVal(MessageStruct *MessageStruct){
  */
 
 void save_file_results(MessageStruct *messageStruct) {
-    //printf("%d", messageStruct->file_index);
+    //printf("%d \n", messageStruct->file_index);
     //printf("words: %d \n", messageStruct->num_words);
     //printf("start w/ vowel: %d \n", messageStruct->num_words);
     //printf("end w/ cons: %d \n", messageStruct->num_words);
