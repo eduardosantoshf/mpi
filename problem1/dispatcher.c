@@ -1,3 +1,21 @@
+/**
+ *  \file dispatcher.c (implementation file)
+ *
+ *  \brief Problem name: Total number of words, number of words beginning with a vowel and ending with a consonant.
+ *
+ *
+ *  Definition of the operations carried out by the dispatcher:
+ *     \li allocateMemory
+ *     \li check_for_file
+ *     \li check_close_file
+ *     \li get_int
+ *     \li getVal
+ *     \li save_file_results
+ *     \li print_final_results.
+ *
+ *  \author Eduardo Santos and Pedro Bastos - May 2022
+ */
+
 #include "MessageStruct.h"
 #include "worker.h"
 #include <errno.h>
@@ -7,8 +25,10 @@
 #include <stdio.h>
 #include "probConst.h"
 
+/** \brief pointer to save the filenames */
 char **file_names;
 
+/** \brief number of files */
 int num_files;
 
 /** \brief array to save the total number of words for each file */
@@ -29,7 +49,19 @@ int open_file = 0;
 /** \brief flag that indicates if the file was already closed */
 int close_file = 0;
 
+/** \brief pointer to the file */
 FILE *fp;
+
+
+/** 
+ *  \brief Allocate memory to save the results.
+ *  
+ *  Operation carried out by the dispatcher.
+ * 
+ *  \param filenames array with the file names
+ *  \param numFiles number of files
+ * 
+ */
 
 void allocateMemory(char *filenames[], unsigned int numfiles){
 
@@ -50,11 +82,10 @@ void allocateMemory(char *filenames[], unsigned int numfiles){
 }
 
 /** 
- *  \brief Wait for the workers to be ready and then open the next file.
+ *  \brief Open the next file, if available.
  *  
- *  Operation carried out by the workers.
+ *  Operation carried out by the dispatcher.
  * 
- *  \param id worker identification
  *  \return 1 for Success and 0 for Failure.
  */
 
@@ -63,24 +94,12 @@ int check_for_file() {
   int flag_file = 1;
   index_file++;
 
-  //printf("index: %d \n", index_file);
-  //printf("num: %d \n", num_files);
-  if (index_file < num_files) {                                                          /* Check if there are more files to be opened */
-      open_file = 1;
+  /* if there is still files to open */
+  if (index_file < num_files) {
       close_file = 0;
-      //printf("ficheiro: %s \n", file_names[index_file]);
+      open_file = 1;
       fp = fopen(file_names[index_file], "r");
-
-      if(fp == NULL){
-            printf("ERROR: Unable to open the file: %s\n", file_names[index_file]);
-            flag_file = 0;
-            open_file = 0;
-      }
-
-      
-
   }
-
   else{
     flag_file = 0;
   }
@@ -89,26 +108,24 @@ int check_for_file() {
 }
 
 /** 
- *  \brief Wait for the workers to be ready and then close the file.
+ *  \brief close the file.
  *  
- *  Operation carried out by the workers.
+ *  Operation carried out by the dispatcher.
  * 
- *  \param id worker identification
  */
 
 void check_close_file() {
-
-  if (!close_file) {                                            /* Check if the file is not already being closed and, if not, close it */
+  if (!close_file) {                                            
     fclose(fp);
-    open_file = 0;
     close_file = 1;
+    open_file = 0;
   }
 }
 
 /** 
  *  \brief Calculate the next char and convert it to integer.
  *  
- *  Operation carried out by the workers.
+ *  Operation carried out by the dispatcher.
  * 
  *  \param fp pointer to file.
  *  \return value.
@@ -155,74 +172,82 @@ int get_int(FILE *fp) {
   return ch_value;
 }
 
+/** 
+ *  \brief open each file and read next chunk.
+ *  
+ *  Operation carried out by the dispatcher.
+ * 
+ *  \param MessageStuct message struct to save the chunk information.
+ *  \return 1 if still data to read, 0 otherwise.
+ */
+
 int getVal(MessageStruct *MessageStruct){
 
     int available = 1;
     int bytes = 0;
     unsigned int ch_value;
 
+    /* if file not opened */
     if(!open_file){
         available = check_for_file();
     }
 
-    MessageStruct->file_index = index_file;
-    //printf("index: %d \n", index_file);
-
-
+    /* if file available */
     if(available){
-        //printf("entrei no file \n");
+
         while (bytes != NUM_BYTES) {
+
             ch_value = get_int(fp);
-            //printf("%d \n", ch_value);
+
+            /* if EOF */
             if(ch_value == -1){
                 break;
             }
-            //if(ch_value == 1){
-            //    printf("entrou aqui???");
-            //}
+
+            /* save next byte in the structure */
             MessageStruct->ch_values[bytes] = ch_value;
             bytes += 1;
         }
 
-        while (!is_split(ch_value))
-        {   
+        /* avoid ending in the middle of a word */
+        while (!is_split(ch_value)) {   
+
             ch_value = get_int(fp);
-            //printf("%d \n", ch_value);
+
+            /* if EOF */
             if(ch_value == -1){
                 break;
             }
+
+            /* save next byte in the structure */
             MessageStruct->ch_values[bytes] = ch_value;
             bytes += 1;
         }
-        
-        
     }
 
+    /* save file index in the structure */
+    MessageStruct->file_index = index_file;
+
+    /* save number of bytes read */
     MessageStruct->n_bytes_read = bytes;
 
+    /* if 0 bytes are read, is EOF */
     if(bytes == 0){
         check_close_file();
-        //return 0;
     }
 
     return available;
-
 }
 
 /**
- *  \brief Save resuts for a single file.
+ *  \brief Save partial results of each chunk.
  *
- *  Operation carried out by the workers.
+ *  Operation carried out by the dispatcher.
  *
- *  \param consId worker identification.
+ *  \param messageStruct message structure to save.
  */
 
 void save_file_results(MessageStruct *messageStruct) {
-    //printf("%d \n", messageStruct->file_index);
-    //printf("words: %d \n", messageStruct->num_words);
-    //printf("start w/ vowel: %d \n", messageStruct->num_words);
-    //printf("end w/ cons: %d \n", messageStruct->num_words);
-    //printf("\n");
     array_num_words[messageStruct->file_index] += messageStruct->num_words;
     array_num_vowels[messageStruct->file_index] += messageStruct->num_vowels;
     array_num_cons[messageStruct->file_index] += messageStruct->num_cons;
@@ -231,7 +256,7 @@ void save_file_results(MessageStruct *messageStruct) {
 /**
  *  \brief print final results.
  *
- *  Operation carried out by the main thread.
+ *  Operation carried out by the dispatcher.
  */
 
 void print_final_results() {

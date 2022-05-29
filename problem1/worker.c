@@ -1,3 +1,18 @@
+/**
+ *  \file worker.c (implementation file)
+ *
+ *  \brief Problem name: Total number of words, number of words beginning with a vowel and ending with a consonant.
+ *
+ *
+ *  Definition of the operations carried out by the workers:
+ *      \li is_vowel
+ *      \li is_consonant
+ *      \li is_split
+ *      \li processVal.
+ *
+ *  \author Eduardo Santos and Pedro Bastos - May 2022
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -5,9 +20,17 @@
 #include <time.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <string.h>
+
 #include "probConst.h"
 #include "MessageStruct.h"
-#include <string.h>
+
+/** \brief variables used in the computation of each file */
+int flag = 0;
+int value_before = 0;
+int end_of_word = 0;
+int end = 0;
+
 
 /** 
  *  \brief Check if a given char is a vowel.
@@ -17,13 +40,6 @@
  *  \param char_value character value to be checked.
  *  \return 1 if is a vowel, 0 otherwise.
  */
-
-int middle_of_word = 0;
-int flag = 0;
-int value_before = 0;
-int end_of_word = 0;
-int space_flag = 0;
-int end = 0;
 
 int is_vowel(int char_value) {
   /* list of all the vowels values */
@@ -85,23 +101,27 @@ int is_split(int char_value) {
   return 0;
 }
 
+/** 
+ *  \brief Process each file chunk.
+ *  
+ *  Operation carried out by the workers.
+ * 
+ *  \param messageStruct structure that contains the chunk information.
+ */
 
 void processVal(MessageStruct *messageStruct) {
 
+    /* initialize struct variables */
     messageStruct->num_cons = 0;
     messageStruct->num_vowels = 0;
     messageStruct->num_words = 0;
 
     int ch_value = 0;
 
-    for (int counter = 0; counter < messageStruct->n_bytes_read; counter++) {                                          /* read a specified number of bytes */ 
+    for (int counter = 0; counter < messageStruct->n_bytes_read; counter++) {                                         
 
         /* get next char value */
         ch_value = messageStruct->ch_values[counter];
-
-        //if(!is_split(ch_value) && !is_consonant(ch_value) && !is_vowel(ch_value))
-        //    break;
-        //printf("%d \n", ch_value);
 
         /* if EOF */
         if (ch_value == -1) {
@@ -111,24 +131,10 @@ void processVal(MessageStruct *messageStruct) {
         /* check if first char of file is vowel */
         if (flag == 0) {
             if (is_vowel(ch_value) == 1) {
-                //printf("mais uma vogal: %d \n", ch_value);
                 messageStruct->num_vowels += 1;
-                //messageStruct->num_words += 1;
-                //printf("new word in: %d \n", ch_value);
             }
             flag = 1;
         }
-
-        /*
-        if(space_flag == 0){
-            if(is_split(ch_value)){
-                continue;
-            }
-            if(!is_split(ch_value)){
-                space_flag = 1;
-            }
-        }
-        */
 
         /* check if is a lonely apostrophe to avoid counting as word */
         if (ch_value == 39 || ch_value == 8216 || ch_value == 8217) {
@@ -139,66 +145,47 @@ void processVal(MessageStruct *messageStruct) {
         /* if is split char */
         if (is_split(ch_value)) {
 
-        /* check if previous char was a consonant */
-        if (is_consonant(value_before))
-            messageStruct->num_cons += 1;
+            /* check if previous char was a consonant */
+            if (is_consonant(value_before))
+                messageStruct->num_cons += 1;
 
-        end_of_word = 1;
-        if(!is_split(value_before) && value_before != 0)
-            end = 1;
+            end_of_word = 1;
+
+            /* avoid consequent split chars */
+            if(!is_split(value_before) && value_before != 0)
+                end = 1;
 
         }
 
         /* not a split chat */
         else{
             end = 0;
+
             /* check if is end of word to sum total words */
             if (end_of_word == 1) {
-                //printf("new word in: %d \n", ch_value);
-                //messageStruct->num_words += 1;
+
                 end_of_word = 0;
 
                 /* if first char of new word is vowel */
                 if (is_vowel(ch_value) == 1){
                     messageStruct->num_vowels += 1;
-                    //printf("mais uma vogal: %d \n", ch_value);
                 }
             }
         }
-        
-        if(counter == (messageStruct->n_bytes_read - 1)){
-           if(is_split(ch_value) && !is_split(value_before)){
-                //printf("new word in: %d \n", ch_value);
-                //messageStruct->num_words += 1;
-           } 
-        }
 
+        /* if end of word */
         if(end == 1){
-            //printf("new word in: %d \n", ch_value);
             messageStruct->num_words += 1;
             end = 0;
         }
-
-        //if(end_of_word == 1){
-        //    printf("new word in: %d \n", ch_value);
-        //    messageStruct->num_words += 1;
-        //    end_of_word = 0;
-        //}
-
 
         /* save previous char to check in next iteration */
         value_before = ch_value;
     }
 
+    /* reset temporary variables */
     flag = 0;
     value_before = 0;
     end_of_word = 0;
-    space_flag = 0;
-
-    //if(is_vowel(ch_value) || is_consonant(ch_value)){
-        //printf("aqui");
-    //    middle_of_word = 1;
-    //}
-
 
 }
