@@ -5,7 +5,7 @@
  *
  *  Problem simulation parameters.
  *
- *  \author Eduardo Santos and Pedro Bastos - April 2022
+ *  \author Eduardo Santos and Pedro Bastos - May 2022
  */
 
 #ifndef PROBCONST_H_
@@ -13,6 +13,7 @@
 
 /* Generic parameters */
 
+/** \brief Number of bytes to read */
 #define NUM_BYTES   2000
 
 #endif /* PROBCONST_H_ */
