@@ -13,6 +13,6 @@
 
 /* Generic parameters */
 
-#define NUM_BYTES   500
+#define NUM_BYTES   2000
 
 #endif /* PROBCONST_H_ */

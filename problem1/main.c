@@ -54,6 +54,8 @@ void dispatcher(char *file_names[], unsigned int num_files) {
 
   allocateMemory(file_names, num_files);
 
+  clock_gettime (CLOCK_MONOTONIC_RAW, &start); 
+
   while(getVal((MessageStruct *) &messageStruct)) {
 
     for(worker_id = 1; worker_id <= n_workers; worker_id++){
@@ -69,7 +71,7 @@ void dispatcher(char *file_names[], unsigned int num_files) {
     }
 
     for(worker_id = 1; worker_id <= last_worker; worker_id++){
-      //printf("%d", worker_id);
+      //printf("%d \n", worker_id);
 
       MPI_Recv(&messageStruct, sizeof(MessageStruct), MPI_BYTE, worker_id, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
@@ -79,6 +81,8 @@ void dispatcher(char *file_names[], unsigned int num_files) {
 
   }
 
+  clock_gettime (CLOCK_MONOTONIC_RAW, &finish);
+
   still_work = false;
 
   for(int i = 1; i <= n_workers; i++){
@@ -86,6 +90,8 @@ void dispatcher(char *file_names[], unsigned int num_files) {
   }
 
   print_final_results();
+
+  printf ("\nElapsed time = %.6f s\n",  (finish.tv_sec - start.tv_sec) / 1.0 + (finish.tv_nsec - start.tv_nsec) / 1000000000.0);
 
 }
 
@@ -142,6 +148,14 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if(size <= 1){
+    if(rank == 0){
+      printf("Wrong number of processes! It must be greater than 1. \n");
+      MPI_Finalize();
+      return EXIT_FAILURE;
+    }
+  }
 
   n_workers = size - 1;
 

@@ -23,6 +23,7 @@ int flag = 0;
 int value_before = 0;
 int end_of_word = 0;
 int space_flag = 0;
+int end = 0;
 
 int is_vowel(int char_value) {
   /* list of all the vowels values */
@@ -143,15 +144,18 @@ void processVal(MessageStruct *messageStruct) {
             messageStruct->num_cons += 1;
 
         end_of_word = 1;
+        if(!is_split(value_before) && value_before != 0)
+            end = 1;
 
         }
 
         /* not a split chat */
         else{
+            end = 0;
             /* check if is end of word to sum total words */
             if (end_of_word == 1) {
                 //printf("new word in: %d \n", ch_value);
-                messageStruct->num_words += 1;
+                //messageStruct->num_words += 1;
                 end_of_word = 0;
 
                 /* if first char of new word is vowel */
@@ -161,12 +165,18 @@ void processVal(MessageStruct *messageStruct) {
                 }
             }
         }
-
+        
         if(counter == (messageStruct->n_bytes_read - 1)){
            if(is_split(ch_value) && !is_split(value_before)){
-                //printf("aqui crl new word in: %d \n", ch_value);
-                messageStruct->num_words += 1;
+                //printf("new word in: %d \n", ch_value);
+                //messageStruct->num_words += 1;
            } 
+        }
+
+        if(end == 1){
+            //printf("new word in: %d \n", ch_value);
+            messageStruct->num_words += 1;
+            end = 0;
         }
 
         //if(end_of_word == 1){
