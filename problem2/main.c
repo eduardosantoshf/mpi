@@ -16,19 +16,20 @@
 #define WORKTODO 1
 #define NOMOREWORK 0
 
-/** \brief number of workers */
 int nWorkers;
-/** \brief  Array containing the amount of matrices **/
+
 int *matrixAmount;
-/** \brief dispatcher life cycle routine */
+
+// dispatcher life cycle routine
 void dispatcher(char ***fileNames, int fileAmount);
-/** \brief worker life cycle routine */
+
+// worker life cycle routine
 void work(int rank);
 
-/** \brief process the called command. */
+// process the called command
 static int process_command(int argc, char *argv[], int* , char*** fileNames);
 
-/** \brief Print the explanation of how to use the command. */
+// Print the explanation of how to use the command
 static void printUsage (char *cmdName);
 
 /**
@@ -40,8 +41,8 @@ static void printUsage (char *cmdName);
 int main(int argc, char *argv[]) {
     struct timespec start, finish; // time limits
 
-    int fileAmount = 0;            // amount of files
-    char **fileNames;             // array of pointers, each pointer points to a string literal
+    int fileAmount = 0; // amount of files
+    char **fileNames; // array of pointers, each pointer points to a string literal
 
     int rank, // process rank
         size; // amout of processes
@@ -54,17 +55,16 @@ int main(int argc, char *argv[]) {
     if (rank == 0) { // root process (dispatcher)
         clock_gettime(CLOCK_MONOTONIC_RAW, &start); // start counting time
     
-        // will hold the output of processing the command
         int command_result;
 
         // process the command and act according to it
         command_result = process_command(argc, argv, &fileAmount, &fileNames);
+
         if (command_result != EXIT_SUCCESS) {
             free(fileNames);
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); // kill every living process (root included)
-        } else {
+        } else 
             dispatcher(&fileNames, fileAmount);
-        }
 
         clock_gettime(CLOCK_MONOTONIC_RAW, &finish); // end counting time
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 /**
  * \brief Dispatcher
  *
- * Will read and process the files, sending work to th workers, storing and printing the results
+ * Will read and process the files, sending work to the workers, storing and printing the results returned
  * 
  * @param fileNames Files
  * @param fileAmount Number of files to be processed
@@ -108,45 +108,43 @@ void dispatcher(char ***fileNames, int fileAmount) {
     int matrixId = 0, fileId = 0, chunkId = 0;
     int chunksToSend;
 
-    FILE *f = NULL;
+    FILE *file = NULL;
 
     while (ToDo) {
-        /* If there are no more files to process*/
-        if (fileId == fileAmount) {
+        if (fileId == fileAmount) { // If there are no more files to process 
             printf("No more work, sending message to workers to end..\n");
             ToDo = NOMOREWORK;
 
             for (int i = 1; i <= nWorkers; i++)
-                MPI_Send(&ToDo, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD); /* tell workers there is no more work to be done */
+                MPI_Send(&ToDo, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD); // tell workers there is no more work to be done
             break;
         }
-        /* Otherwise tell workers that there is work to do..*/
         for (int i = 1; i <= nWorkers; i++)
-            MPI_Send(&ToDo, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&ToDo, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD); // tell workers that there is work to do
         
-        /* If the pointer is null open the File*/
-        if (f == NULL) {
-            f = fopen(file_names[fileId], "r");
+        if (file == NULL) { // if the pointer is null open the file
+            file = fopen(file_names[fileId], "r");
 
-            if (f == NULL) {
+            if (file == NULL) {
                 printf("Could not open file\n");
                 exit(-1);
             }
 
             amount = 0;
 
-            // reads amount of matrices
-            if (!fread(&amount, sizeof(int), 1, f)) {
+            // read amount of matrices
+            if (!fread(&amount, sizeof(int), 1, file)) {
                 printf("Error reading amount. Exiting...\n");
                 exit(-1);
             }
 
             results[fileId] = malloc(amount * sizeof(double));
             matrixAmount[fileId] = amount;
-            // reads order of matrices
+
             order = 0;
 
-            if (!fread(&order, sizeof(int), 1, f)) {
+            // read order of the matrices
+            if (!fread(&order, sizeof(int), 1, file)) {
                 printf("Error reading order. Exiting...");
                 exit(-1);
             }
@@ -158,7 +156,7 @@ void dispatcher(char ***fileNames, int fileAmount) {
         for (int j = 1; j <= nWorkers; j++) {
             chunkInfo chunk;
             if (matrixAmount[fileId] == chunkId) {
-                chunk.isLastChunk=1;
+                chunk.isLastChunk = 1;
                 MPI_Send(&chunk, sizeof(chunkInfo), MPI_BYTE, j, 0, MPI_COMM_WORLD);
                 continue;
             }
@@ -173,7 +171,7 @@ void dispatcher(char ***fileNames, int fileAmount) {
             MPI_Send(&chunk, sizeof(chunkInfo), MPI_BYTE, j, 0, MPI_COMM_WORLD);
             double *matrix = (double *)malloc(sizeof(double) * order * order);
             
-            if (!fread(matrix, 8, order * order, f))
+            if (!fread(matrix, 8, order * order, file))
                 break;
 
             MPI_Send(matrix, order * order, MPI_DOUBLE, j, 0, MPI_COMM_WORLD);
@@ -183,14 +181,14 @@ void dispatcher(char ***fileNames, int fileAmount) {
         }
 
         for (workerId = 1; workerId <= chunksToSend; workerId++) {
-            double partialResultData[3]; /* received partial info computed by workers */
+            double partialResultData[3]; // received partial info computed by workers
             MPI_Recv(partialResultData, 3, MPI_DOUBLE, workerId, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             storePartialResult(results, partialResultData[1], partialResultData[2], partialResultData[0]);
         }
         if (chunkId == matrixAmount[fileId]) {
-            fclose(f);
-            f = NULL;
+            fclose(file);
+            file = NULL;
             fileId++;
         }
     }
@@ -199,7 +197,7 @@ void dispatcher(char ***fileNames, int fileAmount) {
 
 /**
  *
- * This method will compute the determinat a store itt as partial info, sending it to dispatcher
+ * This method will compute the determinat, sending it to dispatcher
  * 
  * @param rank process rank
  */
