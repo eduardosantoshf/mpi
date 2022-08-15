@@ -7,7 +7,7 @@ This labs were developed under the [Large Scale Computing](https://www.ua.pt/en/
 
 ## Libraries
 
-This project implements the **MPI (Message Passing Interface library**.
+This project implements the **MPI (Message Passing Interface)** library.
 
 ## How to run
 You can find the running steps inside the `README.md` file, on each problems directory.
